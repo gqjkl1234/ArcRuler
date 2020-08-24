@@ -50,14 +50,15 @@
         self.maxRulerValue = 100.0f;
         self.minimumAccuracy = 1.0f;
         
-        self.rulerSpace = 10.0f;
+        self.rulerSpace = 14.0f;
         
         totalCount = round((_maxRulerValue - _minRulerValue) / _minimumAccuracy) + 1;
-        rulerInterSpace = 100.0f;
-        normalHeight = 15.0f;
-        tenHeight = 25.0f;
-        fiveHeight = 20.0f;
+        normalHeight = 10.0f;
+        tenHeight = 20.0f;
+        fiveHeight = 15.0f;
         
+        rulerInterSpace = 100.0f;
+
         self.sublayers = [NSMutableArray array];
         self.subViews = [NSMutableArray array];
     }
@@ -66,7 +67,7 @@
 
 - (void)setUp {
     
-    self.backgroundColor = UIColor.whiteColor;
+    self.backgroundColor = UIColor.clearColor;
 
     if (_innerScrollView.superview) {
         [_innerScrollView removeFromSuperview];
@@ -77,12 +78,21 @@
     _innerScrollView.delegate = self;
     _innerScrollView.bounces = NO;
     _innerScrollView.showsHorizontalScrollIndicator = NO;
-    _innerScrollView.backgroundColor = [UIColor.blackColor colorWithAlphaComponent:0.4];
     [self addSubview:_innerScrollView];
     
     _innerScrollView.contentSize = CGSizeMake(self.bounds.size.width + self.rulerSpace * (totalCount - 1), self.bounds.size.height);
     
     [self setNeedsDisplay];
+    
+    if (_currentValue < self.minRulerValue) {
+        _currentValue = self.minRulerValue;
+    }
+    if (_currentValue > self.maxRulerValue) {
+        _currentValue = self.maxRulerValue;
+    }
+    
+    CGFloat offsetX = roundf((_currentValue - self.minRulerValue) / self.minimumAccuracy) * self.rulerSpace;
+    [_innerScrollView setContentOffset:CGPointMake(offsetX, 0.0)];
 }
 
 - (void)showStraightRuler {
@@ -101,7 +111,7 @@
     
     totalCount = round((_maxRulerValue - _minRulerValue) / _minimumAccuracy) + 1;
 
-    angelPerLine = 1.5f / 180.0f * M_PI;
+    angelPerLine = 2.0f / 180.0f * M_PI;
     
     outShowAngle = self.bounds.size.width / self.rulerSpace * angelPerLine;
     outStartAngel = (2 * M_PI - outShowAngle - M_PI) / 2.0f + M_PI;
@@ -113,7 +123,7 @@
     innerShowAngle = 2 * asin(self.bounds.size.width / 2.0 / innerRadius);
     innerStartAngel = (2 * M_PI - innerShowAngle - M_PI) / 2.0f + M_PI;
     CGRect rect = self.frame;
-    rect.size.height = outRadius - cos(innerStartAngel) * innerRadius;
+    rect.size.height = outRadius - cos(innerShowAngle * 0.5) * innerRadius;
     self.frame = rect;
 
     self.isArc = YES;
@@ -138,9 +148,7 @@
 }
 
 - (void)drawArcScale {
-    
-    self.innerScrollView.backgroundColor = UIColor.whiteColor;
-    
+        
     CGFloat offsetX = _innerScrollView.contentOffset.x;
     CGFloat offsetAngel = offsetX / self.rulerSpace * angelPerLine;
 
@@ -151,18 +159,18 @@
     [bezier addLineToPoint:CGPointMake(circleCenter.x + cos(innerStartAngel + innerShowAngle) * innerRadius, circleCenter.y + sin(innerStartAngel + innerShowAngle) * innerRadius)];
     [bezier appendPath:[UIBezierPath bezierPathWithArcCenter:circleCenter radius:innerRadius startAngle:innerStartAngel + innerShowAngle endAngle:innerStartAngel clockwise:NO]];
     [bezier addLineToPoint:startPoint];
-    CAShapeLayer *layer = [self shapeLayerWithPath:bezier lineWidth:1.0 stroke:UIColor.darkGrayColor fill:UIColor.lightGrayColor];
+    CAShapeLayer *layer = [self shapeLayerWithPath:bezier lineWidth:1.0 stroke:self.lineColor fill:self.bgColor];
     [self.layer insertSublayer:layer atIndex:2];
     [self.sublayers addObject:layer];
     
     UIBezierPath *bezierThin = [UIBezierPath bezierPath];
     UIBezierPath *bezierBold = [UIBezierPath bezierPath];
     
-    CAShapeLayer *thinLayer = [self shapeLayerWithPath:bezierThin lineWidth:1.0 stroke:UIColor.darkGrayColor fill:UIColor.lightGrayColor];
+    CAShapeLayer *thinLayer = [self shapeLayerWithPath:bezierThin lineWidth:1.0 stroke:self.lineColor fill:nil];
     [self.layer addSublayer:thinLayer];
     [self.sublayers addObject:thinLayer];
     
-    CAShapeLayer *boldLayer = [self shapeLayerWithPath:bezierBold lineWidth:2.0 stroke:UIColor.darkGrayColor fill:UIColor.lightGrayColor];
+    CAShapeLayer *boldLayer = [self shapeLayerWithPath:bezierBold lineWidth:2.0 stroke:self.lineColor fill:nil];
     [self.layer addSublayer:boldLayer];
     [self.sublayers addObject:boldLayer];
 
@@ -172,10 +180,9 @@
             continue;
         }
         
-        if (angel == outStartAngel + 0.5 * outShowAngle) {
-            if (self.delegate) {
-                [self.delegate rulerView:self didSelectedValueChange:self.minRulerValue + offsetAngel / angelPerLine];
-            }
+        if (self.delegate) {
+            self.currentValue = offsetX / self.rulerSpace * self.minimumAccuracy + (CGFloat)self.minRulerValue;
+            [self.delegate rulerView:self didSelectedValueChange:self.currentValue];
         }
         if (i % 10 == 0) {
             [bezierBold moveToPoint:CGPointMake(circleCenter.x + cos(angel) * outRadius, circleCenter.y + sin(angel) * outRadius)];
@@ -186,10 +193,10 @@
             
             UILabel *label = [[UILabel alloc] init];
             label.text = [NSString stringWithFormat:@"%d", (int)(self.minRulerValue + i * self.minimumAccuracy)];;
-            if (angel == outStartAngel + 0.5 * outShowAngle) {
-                label.textColor = UIColor.blueColor;
+            if (round((angel - outStartAngel - 0.5 * outShowAngle) / angelPerLine) == 0.0) {
+                label.textColor = self.selectedValueColor;
             } else {
-                label.textColor = UIColor.darkGrayColor;
+                label.textColor = self.lineColor;
             }
             label.font = [UIFont systemFontOfSize:16.0f];
             [label sizeToFit];
@@ -225,18 +232,18 @@
     [bezier addLineToPoint:CGPointMake(self.frame.size.width, self.frame.size.height)];
     [bezier addLineToPoint:CGPointMake(0.0, self.frame.size.height)];
     [bezier addLineToPoint:CGPointMake(0.0, 0.0)];
-    CAShapeLayer *layer = [self shapeLayerWithPath:bezier lineWidth:1.0 stroke:UIColor.darkGrayColor fill:UIColor.lightGrayColor];
+    CAShapeLayer *layer = [self shapeLayerWithPath:bezier lineWidth:1.0 stroke:self.lineColor fill:self.bgColor];
     [self.layer insertSublayer:layer atIndex:2];
     [self.sublayers addObject:layer];
 
     UIBezierPath *bezierThin = [UIBezierPath bezierPath];
     UIBezierPath *bezierBold = [UIBezierPath bezierPath];
     
-    CAShapeLayer *thinLayer = [self shapeLayerWithPath:bezierThin lineWidth:1.0 stroke:UIColor.darkGrayColor fill:UIColor.lightGrayColor];
+    CAShapeLayer *thinLayer = [self shapeLayerWithPath:bezierThin lineWidth:1.0 stroke:self.lineColor fill:nil];
     [self.layer addSublayer:thinLayer];
     [self.sublayers addObject:thinLayer];
     
-    CAShapeLayer *boldLayer = [self shapeLayerWithPath:bezierBold lineWidth:2.0 stroke:UIColor.darkGrayColor fill:UIColor.lightGrayColor];
+    CAShapeLayer *boldLayer = [self shapeLayerWithPath:bezierBold lineWidth:2.0 stroke:self.lineColor fill:nil];
     [self.layer addSublayer:boldLayer];
     [self.sublayers addObject:boldLayer];
 
@@ -245,8 +252,9 @@
         if (offset < 0.0 || offset > self.frame.size.width) {
             continue;
         }
-        if (offsetX == self.frame.size.width / 2.0) {
-            [self.delegate rulerView:self didSelectedValueChange:self.minRulerValue + offsetX / self.rulerSpace];
+        if (self.delegate) {
+            self.currentValue = offsetX / self.rulerSpace + self.minRulerValue;
+            [self.delegate rulerView:self didSelectedValueChange:self.currentValue];
         }
         if (i % 10 == 0) {
             [bezierBold moveToPoint:CGPointMake(offset, 0.0)];
@@ -257,17 +265,16 @@
 
             UILabel *label = [[UILabel alloc] init];
             label.text = [NSString stringWithFormat:@"%d", (int)(self.minRulerValue + i * self.minimumAccuracy)];;
-            if (offset == self.frame.size.width / 2.0) {
-                label.textColor = UIColor.blueColor;
+            if (round((offset - self.frame.size.width * 0.5) / self.rulerSpace) == 0.0) {
+                label.textColor = self.selectedValueColor;
             } else {
-                label.textColor = UIColor.darkGrayColor;
+                label.textColor = self.lineColor;
             }
             label.font = [UIFont systemFontOfSize:16.0f];
             [label sizeToFit];
             label.center = CGPointMake(offset, self.frame.size.height / 2.0);
             [self addSubview:label];
             [self.subViews addObject:label];
-
         } else {
             CGFloat height = normalHeight;
             if (i % 5 == 0) {

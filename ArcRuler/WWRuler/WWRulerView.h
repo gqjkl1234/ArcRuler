@@ -22,10 +22,14 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, weak) id<WWRulerViewDelegate> delegate;
 
 @property (nonatomic, assign) CGFloat rulerSpace;
+@property (nonatomic, assign) CGFloat currentValue;
 
 @property (nonatomic, assign) NSInteger minRulerValue;
 @property (nonatomic, assign) NSInteger maxRulerValue;
 @property (nonatomic, assign) CGFloat minimumAccuracy;
+@property (nonatomic, strong) UIColor *bgColor;
+@property (nonatomic, strong) UIColor *lineColor;
+@property (nonatomic, strong) UIColor *selectedValueColor;
 
 - (void)showStraightRuler;
 
