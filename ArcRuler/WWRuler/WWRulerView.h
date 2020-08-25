@@ -1,6 +1,6 @@
 //
 //  WWRulerView.h
-//  Xingchen
+//  WW
 //
 //  Created by ww on 2020/8/20.
 //  Copyright © 2020 ww. All rights reserved.
