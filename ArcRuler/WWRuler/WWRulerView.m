@@ -46,6 +46,8 @@
     self = [super initWithFrame:frame];
     if (self) {
 
+        self.clipsToBounds = YES;
+
         self.minRulerValue = 0.0;
         self.maxRulerValue = 100.0f;
         self.minimumAccuracy = 1.0f;
