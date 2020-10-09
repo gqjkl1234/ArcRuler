@@ -23,6 +23,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, assign) CGFloat rulerSpace;
 @property (nonatomic, assign) CGFloat currentValue;
+@property (nonatomic, assign) BOOL isScrolling;
 
 @property (nonatomic, assign) NSInteger minRulerValue;
 @property (nonatomic, assign) NSInteger maxRulerValue;

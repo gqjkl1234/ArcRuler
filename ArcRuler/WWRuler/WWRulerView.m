@@ -47,7 +47,7 @@
     if (self) {
 
         self.clipsToBounds = YES;
-
+        
         self.minRulerValue = 0.0;
         self.maxRulerValue = 100.0f;
         self.minimumAccuracy = 1.0f;
@@ -128,6 +128,8 @@
     rect.size.height = outRadius - cos(innerShowAngle * 0.5) * innerRadius;
     self.frame = rect;
 
+    outRadius -= 0.5;
+    
     self.isArc = YES;
     [self setUp];
 }
@@ -184,7 +186,7 @@
         
         if (self.delegate) {
             self.currentValue = offsetX / self.rulerSpace * self.minimumAccuracy + (CGFloat)self.minRulerValue;
-            [self.delegate rulerView:self didSelectedValueChange:self.currentValue];
+            [self.delegate rulerView:self didSelectedValueChange:round(offsetX / self.rulerSpace) * self.minimumAccuracy + (CGFloat)self.minRulerValue];
         }
         if (i % 10 == 0) {
             [bezierBold moveToPoint:CGPointMake(circleCenter.x + cos(angel) * outRadius, circleCenter.y + sin(angel) * outRadius)];
@@ -256,7 +258,7 @@
         }
         if (self.delegate) {
             self.currentValue = offsetX / self.rulerSpace + self.minRulerValue;
-            [self.delegate rulerView:self didSelectedValueChange:self.currentValue];
+            [self.delegate rulerView:self didSelectedValueChange:round(offsetX / self.rulerSpace) * self.minimumAccuracy + (CGFloat)self.minRulerValue];
         }
         if (i % 10 == 0) {
             [bezierBold moveToPoint:CGPointMake(offset, 0.0)];
@@ -297,15 +299,22 @@
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView {
     
     [self setNeedsDisplay];
+    if (scrollView.isDragging && scrollView.isDecelerating) {
+        self.isScrolling = YES;
+    }
 }
 
 - (void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate {
+    self.isScrolling = YES;
+
     if (!decelerate) {
         [self finnalAdjust];
     }
 }
 
 - (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView {
+    self.isScrolling = YES;
+
     [self finnalAdjust];
 }
 
@@ -325,6 +334,8 @@
     int toInt = round(offsetX / self.rulerSpace);
     offsetX = toInt * self.rulerSpace;
     [_innerScrollView setContentOffset:CGPointMake(offsetX, 0.0) animated:YES];
+    
+    self.isScrolling = NO;
 }
 
 @end
